@@ -39,3 +39,6 @@ contract/target/.rustc_info.json
 contract/target/.rustc_info.json
 mintsv/package-lock.json
 contract/target/.rustc_info.json
+
+/dev/
+contract/target/.rustc_info.json

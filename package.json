@@ -9,7 +9,7 @@
     "deploy:contract": "near deploy",
     "deploy:pages": "gh-pages -d dist/",
     "deploy": "npm run build && npm run deploy:contract -f && npm run deploy:pages",
-    "start": "parcel src/index.html --open",
+    "start": "parcel src/index.html --out-dir=dev --https --open",
     "dev": "nodemon --watch contract/src -e rs --exec \"npm run start\"",
     "test": "npm run build:contract:debug && cd contract && cargo test -- --nocapture && cd .. && jest test --runInBand"
   },
@@ -33,7 +33,7 @@
     "reactjs-popup": "^2.0.5",
     "regenerator-runtime": "~0.13.5",
     "socket.io": "^4.4.1",
-    "socket.io-client": "^4.4.1",
+    "socket.io-client": "^4.7.2",
     "styled-components": "^5.3.3",
     "uuid": "^8.3.2"
   },
@@ -65,5 +65,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.11"
   }
 }
