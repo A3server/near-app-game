@@ -1,6 +1,8 @@
-const app = require("express")();
+const express = require("express");
+const app = express();
 const mongoose = require("mongoose");
 const gameLogic = require("./sockets/game-logic");
+const bodyParser = require("body-parser");
 
 const http = require("http");
 const server = http.createServer(app);
@@ -53,7 +55,12 @@ try {
 	///
 	/// API Logic
 	///
-
+	app.use(
+		bodyParser.urlencoded({
+			extended: true,
+		})
+	);
+	app.use(express.json());
 	app.use(cors(corsOptions));
 	app.use("/plays", playsRoutes);
 
@@ -68,6 +75,7 @@ try {
 		const status = err.status || 500;
 
 		console.log(status);
+		console.log(err);
 		res.status(status).json({
 			message: "Error not found! Status: " + status,
 		});

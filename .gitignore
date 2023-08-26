@@ -42,3 +42,4 @@ contract/target/.rustc_info.json
 
 /dev/
 contract/target/.rustc_info.json
+aws/package-lock.json

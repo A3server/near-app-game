@@ -3,12 +3,12 @@ const express = require("express");
 const PlaysController = require("../controllers/plays");
 const router = express.Router();
 
-router.post("/", PlaysController.postPlay);
-
 router.get("/", PlaysController.getRecentPlays);
 
 router.get("/top", PlaysController.gettopplays);
 
 router.get("/best", PlaysController.getBestPlayers);
+
+router.post("/", PlaysController.postPlay);
 
 module.exports = router;

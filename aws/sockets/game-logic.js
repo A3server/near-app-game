@@ -59,7 +59,7 @@ exports.init = async (iosocket) => {
 	const near = await nearAPI.connect(config);
 	const account = await near.account(process.env.ACC_ID);
 
-	contract = new nearAPI.Contract(account, process.env.CONTRACT_NAMEE, {
+	contract = new nearAPI.Contract(account, process.env.CONTRACT_NAME, {
 		// name of contract you're connecting to
 		viewMethods: ["view_all_matches"], // view methods do not change state but usually return a value
 		sender: process.env.ACC_ID, // account ID of the signing account
@@ -178,7 +178,7 @@ function createNewGame(gameId) {
 
 	// this.emit("createNewGame", { gameId: gameId, mySocketId: this.id });
 
-	//console.log(this)
+	// console.log(this)
 
 	// Join the Room and wait for the other player
 	this.join(gameId);

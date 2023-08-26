@@ -16,7 +16,7 @@ import { NotLogged, Loading, CreateRoom, SelfMatches, generateDestroyerPhrase } 
 import FooterComponent from "./components/FooterComponent";
 import HeaderButtons from "./components/HeaderComponents";
 
-import { convertYocto, gettxsRes, menusayingsmult, processEvent, startup, getRooms, getRoomInfoFromTxs, joinMultiplayer, listenToRooms, storageRent, deleteMatch, genrandomphrase, closeRoom } from "./utils";
+import { convertYocto, gettxsRes, menusayingsmult, processEvent, startup, getRooms, getRoomInfoFromTxs, joinMultiplayer, listenToRooms, storageRent, deleteMatch, genrandomphrase, closeRoom, sendpostwithplay } from "./utils";
 import LOGOMAIN from "./assets/result.svg";
 import LOGOBACK from "./assets/nearcoin.svg";
 import FlipCoinMultiplayer from "./components/FlipCoinMultiplayer";
@@ -64,9 +64,10 @@ export default function Mult() {
 				console.log("res, telling server to update room:", res);
 				socket.emit("updateRooms");
 
+				// check if the transaction is valid
 				try {
 					let decodedstr = Buffer.from(res.status.SuccessValue, "base64").toString("ascii");
-					// console.log(decodedstr)
+					// happens when you join a room and flipped, single player
 					if (decodedstr === "true") {
 						resetGame();
 						return;
@@ -90,7 +91,7 @@ export default function Mult() {
 						setRoomID(roomid);
 						setAmountWon(ammount);
 						setRoomCreator(creator);
-
+						sendpostwithplay(txsHashes);
 						return;
 					}
 				} catch (error) {
@@ -100,8 +101,8 @@ export default function Mult() {
 					return;
 				}
 
+				// Simply join the room without flipped, happens when you created a room
 				// check if room exists
-				// console.log(returnedvalues.entry_price);
 				nearbetstr = convertYocto(
 					returnedvalues.entry_price.toLocaleString("fullwide", {
 						useGrouping: false,
@@ -109,13 +110,14 @@ export default function Mult() {
 				);
 
 				//set the info using the txs result
-				setprocessing(false);
 				setSideBet(returnedvalues.face);
 				setBetAmmount(nearbetstr);
 				setRoomID(returnedvalues.id);
 				setRoomCreator(returnedvalues.creator);
+				setprocessing(false);
 
 				//TODO: join room socket
+				socket.emit("createNewGame", returnedvalues.id);
 			})
 			.catch((e) => {
 				console.log("err", e);

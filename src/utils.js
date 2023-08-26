@@ -230,11 +230,26 @@ export async function initContract() {
 }
 
 export function sendpostwithplay(txHash) {
+	console.log("Sending post with play");
+	console.log({
+		txhash: txHash,
+		accountid: window.accountId,
+	});
 	axios
-		.post(process.env.DATABASE_URL + "/plays", {
-			txhash: txHash,
-			accountid: window.accountId,
-		})
+		.post(
+			process.env.DATABASE_URL + "/plays/",
+			{
+				txhash: txHash,
+				accountid: window.accountId,
+			},
+			{
+				headers: {
+					Accept: "*/*",
+					"Access-Control-Allow-Origin": "*",
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+			}
+		)
 		.then((res) => {
 			console.log(res);
 		})
@@ -327,6 +342,8 @@ export function joinMultiplayer(ammoutNEAR, idroom, roomCreator, socket) {
 		})
 		.then((res) => {
 			console.log("Joined Match!");
+
+			// doesn't work but will leave it
 			socket.emit("updateRooms");
 		})
 		.catch((e) => {
