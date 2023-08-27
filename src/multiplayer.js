@@ -20,6 +20,7 @@ import { convertYocto, gettxsRes, menusayingsmult, processEvent, startup, getRoo
 import LOGOMAIN from "./assets/result.svg";
 import LOGOBACK from "./assets/nearcoin.svg";
 import FlipCoinMultiplayer from "./components/FlipCoinMultiplayer";
+import Spectators from "./components/Spectators";
 
 const contentStyle = {
 	maxWidth: "35rem",
@@ -55,6 +56,8 @@ export default function Mult() {
 	const [sideResult, setSideResult] = React.useState(null);
 	const [amountWon, setAmountWon] = React.useState(null);
 
+	const [playersInRoom, setPlayersInRoom] = React.useState([]);
+
 	const roomSetupfromTXS = (txsHashes) => {
 		gettxsRes(txsHashes)
 			.then((res) => {
@@ -62,12 +65,11 @@ export default function Mult() {
 				let returnedvalues = {};
 				setShowNotification(true);
 				console.log("res, telling server to update room:", res);
-				socket.emit("updateRooms");
 
 				// check if the transaction is valid
 				try {
 					let decodedstr = Buffer.from(res.status.SuccessValue, "base64").toString("ascii");
-					// happens when you join a room and flipped, single player
+					//* join_match
 					if (decodedstr === "true") {
 						resetGame();
 						return;
@@ -86,6 +88,7 @@ export default function Mult() {
 								useGrouping: false,
 							})
 						);
+
 						setAccountWon(winner);
 						setSideResult(result);
 						setRoomID(roomid);
@@ -100,6 +103,7 @@ export default function Mult() {
 					setprocessing(false);
 					return;
 				}
+				//* create_match
 
 				// Simply join the room without flipped, happens when you created a room
 				// check if room exists
@@ -108,6 +112,7 @@ export default function Mult() {
 						useGrouping: false,
 					})
 				);
+				socket.emit("updateRooms");
 
 				//set the info using the txs result
 				setSideBet(returnedvalues.face);
@@ -116,8 +121,14 @@ export default function Mult() {
 				setRoomCreator(returnedvalues.creator);
 				setprocessing(false);
 
-				//TODO: join room socket
-				socket.emit("createNewGame", returnedvalues.id);
+				searchParams.set("room", returnedvalues.id);
+				navigate(searchParams.toString());
+
+				console.log("join room socket");
+				socket.emit("playerJoinGame", {
+					roomid: returnedvalues.id,
+					account_id: window.accountId,
+				});
 			})
 			.catch((e) => {
 				console.log("err", e);
@@ -169,6 +180,13 @@ export default function Mult() {
 		setSideResult(null);
 		setAmountWon(null);
 
+		console.log("reset game");
+		// leave room
+		socket.emit("playerLeavesGame", {
+			roomid: roomID,
+			account_id: window.accountId,
+		});
+
 		getRooms()
 			.then((data) => {
 				console.log(data);
@@ -200,6 +218,11 @@ export default function Mult() {
 		setSideBet(sidetobet);
 		searchParams.set("room", roomId);
 		navigate(searchParams.toString());
+
+		socket.emit("playerJoinGame", {
+			roomid: roomId,
+			account_id: window.accountId,
+		});
 		setprocessing(false);
 	};
 	/*
@@ -209,12 +232,12 @@ export default function Mult() {
     console.log(!accountWon || !sideResult)
     */
 
-	// Socket Connection Cleanup
 	useEffect(() => {
 		socket.connect();
-
 		return () => {
-			socket.disconnect();
+			if (socket.readyState === 1) {
+				socket.disconnect();
+			}
 		};
 	}, []);
 
@@ -239,15 +262,14 @@ export default function Mult() {
 					setprocessing(false);
 
 					const roomId = searchParams.get("room");
-
 					// get the room with the id
-					const room = data.find((room) => room.id === roomId);
 					if (roomId) {
+						const room = data.find((room) => room.id === roomId);
 						joinRoom(roomId, room.creator, room.entry_price, room.face);
 						return;
 					}
-					socket.connect();
-					listenToRooms(socket, processRooms);
+
+					listenToRooms(socket, processRooms, setPlayersInRoom);
 				})
 				.catch((err) => {
 					console.log(err);
@@ -346,6 +368,7 @@ export default function Mult() {
 													</button>
 												</div>
 
+												<Spectators playersInRoom={playersInRoom} urlPrefix={urlPrefix} />
 												<span className="text-center rounded" style={{ color: "red", fontSize: "0.8rem" }}>
 													If you leave the page, the room will remain active.
 												</span>
@@ -449,6 +472,7 @@ export default function Mult() {
 														BACK
 													</button>
 												</div>
+												<Spectators playersInRoom={playersInRoom} urlPrefix={urlPrefix} />
 											</>
 										)}
 									</>

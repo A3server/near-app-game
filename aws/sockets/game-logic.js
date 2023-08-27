@@ -9,6 +9,10 @@ let contract = null;
 // pConnected stores an array of all active socket connections
 var pConnected = [];
 var allRooms = [];
+var games = new Array(100000); // ! I SHOULDNT DO THIS I WILL CRASH SOME SHIT BUT FUCK IT
+for (let i = 0; i < games.length; i++) {
+	games[i] = [];
+}
 
 require("dotenv").config();
 
@@ -65,16 +69,7 @@ exports.init = async (iosocket) => {
 		sender: process.env.ACC_ID, // account ID of the signing account
 	});
 
-	setInterval(function () {
-		//console.log("yo")
-		//console.log(process.env.CONTRACT_NAMEE)
-		viewAllRoomsFromContract().then(function (response) {
-			// console.log("all rooms: " + response);
-			allRooms = response;
-			//! don't do this, poor practice. Simply send the room updates
-			//? getRooms();
-		});
-	}, SECONDSTOWAIT * 1000);
+	getRooms();
 };
 
 const initializeGame = (io, socket) => {
@@ -102,15 +97,12 @@ const initializeGame = (io, socket) => {
 	// Room 1v1 Logic
 	//
 
-	// User creates new game room after clicking 'submit' on the frontend
-	gameSocket.on("createNewGame", createNewGame);
-
 	// User joins gameRoom after going to a URL with '/game/:gameId'
 	gameSocket.on("playerJoinGame", playerJoinsGame);
 
-	gameSocket.on("request username", requestUserName);
+	gameSocket.on("playerLeavesGame", playerLeavesGame);
 
-	gameSocket.on("recieved userName", recievedUserName);
+	gameSocket.on("playerStartedGame", playerStartedGame);
 
 	// Run code when the client disconnects from their socket session.
 	gameSocket.on("disconnect", onDisconnect);
@@ -141,59 +133,72 @@ function playerJoinsGame(idData) {
 	/**
 	 ** Joins the given socket to a session with it's gameId
 	 **/
-	console.log(idData);
-	// A reference to the player's Socket.IO socket object
-	var sock = this;
-	//get bc its a map
-	var room = allRooms[idData.gameId];
-	// If the room exists...
-	if (room === undefined || room === null) {
-		this.emit("status", "This game no longer exists.");
+	console.log("Player " + idData.account_id + " attempting to join game: " + idData.roomid);
+
+	// rooms are an array of rooms like: {id: 13, creator: 'flipnear.near', face: true, entry_price: 9.828009828009829e+21, rent: 640000000000000000000}
+	// get the room with the id idDATA
+	const roomContract = allRooms.find((room) => room.id === idData.roomid);
+	// If the room doesn't exist...
+	if (roomContract === undefined || roomContract === null) {
+		console.log("Room does not exist.");
+		this.emit("status", "This game session does not exist.");
 		return;
 	}
 
-	if (room.size < 2) {
-		// attach the socket id to the data object.
-		idData.mySocketId = sock.id;
-
-		// Join the room
-		sock.join(idData.gameId);
-
-		console.log(room.size);
-
-		if (room.size === 2) {
-			io.sockets.in(idData.gameId).emit("start game", idData.userName);
-		}
-
-		// Emit an event notifying the clients that the player has joined the room.
-		io.sockets.in(idData.gameId).emit("playerJoinedRoom", idData);
-	} else {
-		// Otherwise, send an error message back to the player.
-		this.emit("status", "There are already 2 people playing in this room.");
+	// check if player is already in the room
+	if (games[idData.roomid].includes(idData.account_id)) {
+		console.log("Player " + idData.account_id + " already in room.");
+		this.emit("status", "You are already in this game session.");
+		return;
 	}
+
+	console.log("Adding Player " + idData.account_id + " to room: " + idData.roomid);
+
+	// add player to the game
+	games[idData.roomid].push(idData.account_id);
+
+	console.log(games[idData.roomid]);
+
+	// Emit an event notifying the clients that the player the clients connected to the room
+	io.sockets.emit("playerJoinedRoom", {
+		roomid: idData.roomid,
+		account_id: idData.account_id,
+	});
 }
 
-function createNewGame(gameId) {
-	console.log("game created: " + gameId);
+function playerLeavesGame(idData) {
+	console.log("Player " + idData.account_id + " attempting to leave game: " + idData.roomid);
 
-	// this.emit("createNewGame", { gameId: gameId, mySocketId: this.id });
+	// rooms are an array of rooms like: {id: 13, creator: 'flipnear.near', face: true, entry_price: 9.828009828009829e+21, rent: 640000000000000000000}
+	// get the room with the id idDATA
+	const roomContract = allRooms.find((room) => room.id === idData.roomid);
+	if (roomContract === undefined || roomContract === null) {
+		console.log("Room does not exist.");
+		this.emit("status", "This game session does not exist.");
+		return;
+	}
 
-	// console.log(this)
+	// check if player is in the room
+	if (!games[idData.roomid].includes(idData.account_id)) {
+		console.log("Player " + idData.account_id + " not in room.");
+		this.emit("status", "You are not in this game session.");
+		return;
+	}
 
-	// Join the Room and wait for the other player
-	this.join(gameId);
+	console.log("Removing Player " + idData.account_id + " from room: " + idData.roomid);
 
-	//emit to all the clients "rooms"
-	getRooms();
+	// remove player from the game
+	games[idData.roomid].splice(games[idData.roomid].indexOf(idData.account_id), 1);
+
+	// Emit an event notifying the clients that the player the clients connected to the room
+	io.sockets.emit("playerLeftRoom", {
+		roomid: idData.roomid,
+		account_id: idData.account_id,
+	});
 }
 
-function requestUserName(gameId) {
-	io.to(gameId).emit("give userName", this.id);
-}
-
-function recievedUserName(data) {
-	data.socketId = this.id;
-	io.to(data.gameId).emit("get Opponent UserName", data);
+function playerStartedGame(gameData) {
+	io.sockets.emit("beginNewGame", gameData);
 }
 
 exports.initializeGame = initializeGame;

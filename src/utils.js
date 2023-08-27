@@ -342,9 +342,6 @@ export function joinMultiplayer(ammoutNEAR, idroom, roomCreator, socket) {
 		})
 		.then((res) => {
 			console.log("Joined Match!");
-
-			// doesn't work but will leave it
-			socket.emit("updateRooms");
 		})
 		.catch((e) => {
 			console.log("Error Joining Match :(");
@@ -417,7 +414,7 @@ export async function closeRoom(roomId, setprocessing, setShowNotification, rese
 		});
 }
 
-export function listenToRooms(socket, processRooms) {
+export function listenToRooms(socket, processRooms, setPlayersInRoom) {
 	const scheduleReconnect = (timeOut) => {
 		if (reconnectTimeout) {
 			clearTimeout(reconnectTimeout);
@@ -425,7 +422,7 @@ export function listenToRooms(socket, processRooms) {
 		}
 		reconnectTimeout = setTimeout(() => {
 			console.log("Reconnecting to rooms");
-			listenToRooms(socket, processRooms);
+			listenToRooms(socket, processRooms, setPlayersInRoom);
 		}, timeOut);
 	};
 
@@ -441,6 +438,40 @@ export function listenToRooms(socket, processRooms) {
 	socket.on("rooms", (data) => {
 		console.log("socket All Rooms: ", data);
 		processRooms(data);
+	});
+
+	socket.on("playerJoinedRoom", (data) => {
+		console.log("socket playerJoinedRoom: ", data);
+		// add data to players in room, data is like this {roomid: idData.roomid, account_id: idData.account_id }
+		// find room=roomid in the url to get the room https://localhost:1234/play/room=61
+		const roomID = window.location.href.split("room=")[1];
+
+		if (data.roomid === roomID) {
+			// make sure to don't add the same player twice
+			setPlayersInRoom((players) => [...players, data.account_id]);
+		}
+	});
+
+	socket.on("playerLeftRoom", (data) => {
+		console.log("socket playerLeftRoom: ", data);
+		// remove data from players in room {roomid: idData.roomid, account_id: idData.account_id }
+		const roomID = window.location.href.split("room=")[1];
+
+		if (data.roomid === roomID) {
+			setPlayersInRoom((players) => players.filter((player) => player !== data.account_id));
+		}
+	});
+
+	socket.on("beginNewGame", (data) => {
+		console.log("socket beginNewGame: ", data);
+		const roomID = window.location.href.split("room=")[1];
+		if (data.roomid === roomID) {
+			//TODO: call play function here
+		}
+	});
+
+	socket.on("status", (data) => {
+		console.log("socket status: ", data);
 	});
 
 	socket.on("disconnect", () => {

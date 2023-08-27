@@ -40,7 +40,7 @@ try {
 	app.set("port", process.env.PORT || 5000);
 
 	io.on("connection", function (client) {
-		console.log("New client connected (id=" + client.id + ").");
+		// console.log("New client connected (id=" + client.id + ").");
 
 		// Fetching Rooms
 		gameLogic.init(io);

@@ -37,7 +37,6 @@ exports.postPlay = (req, res, next) => {
 
 	gettxsStatus(bodyJSON.txhash, bodyJSON.accountid)
 		.then((result) => {
-			console.log(result);
 			if (!result) {
 				return res.status(500).json({
 					error: "Transaction invalid.",
@@ -144,12 +143,9 @@ exports.postPlay = (req, res, next) => {
 				const result = JSON.parse(asciisucess);
 				/* {"id":44,"creator":"jeknowledge.near","winner":"jeknowledge.near","result":true,"amount":10000000000000001965601}*/
 				// update the plays table
-				console.log(result);
 				let asciichoosen = result.result ? "heads" : "tails";
 				// convert result,amount to big nubmer
-
 				let amountWon = utils.format.formatNearAmount(result.amount.toLocaleString("fullwide", { useGrouping: false }));
-				console.log(amountWon);
 				amountWon = Math.round(amountWon * 100) / 100;
 
 				Play.findOne({
